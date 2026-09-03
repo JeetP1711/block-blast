@@ -1,8 +1,6 @@
 import 'package:flutter/material.dart';
 import '../utils/constants.dart';
-import '../game/models/block.dart';
-import '../game/models/block_shape.dart';
-import 'block_widget.dart';
+import '../game/widgets/block_widget.dart';
 
 /// Tutorial/How-to-Play screen with animated examples.
 class TutorialScreen extends StatefulWidget {
