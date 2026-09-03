@@ -63,13 +63,6 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
     }
   }
 
-  void _onPiecePlaced() {
-    final result = _engine.state == GameState.placing ? null : null;
-    // The placement result is handled in PieceTray widget.
-    // We use the engine state to trigger UI updates.
-    setState(() {});
-  }
-
   void _handlePlayAgain() {
     widget.hapticService.lightImpact();
     widget.soundService.playButtonClick();

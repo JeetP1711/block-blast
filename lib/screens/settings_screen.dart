@@ -267,7 +267,7 @@ class _SettingCard extends StatelessWidget {
           Switch(
             value: value,
             onChanged: onChanged,
-            activeColor: const Color(0xFF6C5CE7),
+            activeThumbColor: const Color(0xFF6C5CE7),
             activeTrackColor: const Color(0xFF6C5CE7).withValues(alpha: 0.3),
             inactiveThumbColor: AppColors.textSecondary,
             inactiveTrackColor: AppColors.buttonBg,
