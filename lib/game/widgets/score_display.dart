@@ -194,7 +194,7 @@ class _ScoreDisplayState extends State<ScoreDisplay>
                         child: Transform.scale(
                           scale: _bonusScale!.value,
                           child: Text(
-                            '+${_lastBonus}',
+                            '+$_lastBonus',
                             style: const TextStyle(
                               fontSize: 18,
                               fontWeight: FontWeight.w800,

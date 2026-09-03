@@ -127,7 +127,6 @@ class _PieceTrayState extends State<PieceTray> with TickerProviderStateMixin {
     if (boardBox == null) return;
 
     final boardPos = boardBox.localToGlobal(Offset.zero);
-    final innerSize = widget.boardSize - _boardPadding * 2;
     final cellTotal = _cellSize + AppConstants.gridSpacing;
 
     // Calculate which cell the center of the piece would land on
