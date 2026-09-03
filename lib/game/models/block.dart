@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../utils/constants.dart';
+import '../../utils/constants.dart';
 
 /// Represents a single cell position in a block shape.
 class BlockCell {
