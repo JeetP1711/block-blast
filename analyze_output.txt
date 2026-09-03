@@ -1,0 +1,21 @@
+Analyzing block blast...                                        
+
+  error - Target of URI doesn't exist: '../utils/constants.dart' - lib\game\models\block.dart:2:8 - uri_does_not_exist
+  error - Undefined class 'BlockColorSet' - lib\game\models\block.dart:64:3 - undefined_class
+  error - Undefined name 'AppColors' - lib\game\models\block.dart:64:33 - undefined_identifier
+  error - Undefined name 'AppColors' - lib\game\models\block.dart:64:68 - undefined_identifier
+  error - Undefined class 'BlockColorSet' - lib\game\models\block.dart:96:3 - undefined_class
+  error - Undefined name 'AppColors' - lib\game\models\block.dart:97:18 - undefined_identifier
+  error - Undefined name 'AppColors' - lib\game\models\block.dart:97:53 - undefined_identifier
+warning - Unused import: 'dart:math' - lib\game\widgets\game_board_widget.dart:1:8 - unused_import
+warning - Unused import: '../models/block.dart' - lib\game\widgets\game_board_widget.dart:3:8 - unused_import
+warning - The value of the local variable 'innerSize' isn't used - lib\game\widgets\piece_tray.dart:130:11 - unused_local_variable
+   info - Unnecessary braces in a string interpolation - lib\game\widgets\score_display.dart:197:31 - unnecessary_brace_in_string_interps
+warning - The declaration '_onPiecePlaced' isn't referenced - lib\screens\game_screen.dart:66:8 - unused_element
+warning - The value of the local variable 'result' isn't used - lib\screens\game_screen.dart:67:11 - unused_local_variable
+   info - 'activeColor' is deprecated and shouldn't be used. Use activeThumbColor instead. This feature was deprecated after v3.31.0-2.0.pre - lib\screens\settings_screen.dart:270:13 - deprecated_member_use
+warning - Unused import: '../game/models/block.dart' - lib\screens\tutorial_screen.dart:3:8 - unused_import
+warning - Unused import: '../game/models/block_shape.dart' - lib\screens\tutorial_screen.dart:4:8 - unused_import
+  error - Target of URI doesn't exist: 'block_widget.dart' - lib\screens\tutorial_screen.dart:5:8 - uri_does_not_exist
+
+17 issues found. (ran in 1.3s)
