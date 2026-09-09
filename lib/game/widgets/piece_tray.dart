@@ -122,9 +122,10 @@ class _PieceTrayState extends State<PieceTray> with TickerProviderStateMixin {
   @override
   Widget build(BuildContext context) {
     _boardPadding = 8.0;
-    final innerBoardSize = widget.boardSize - _boardPadding * 2;
-    _cellSize = (innerBoardSize - (AppConstants.gridSize - 1) * AppConstants.gridSpacing) /
-        AppConstants.gridSize;
+    final borderWidth = 1.5;
+    final innerBoardSize = widget.boardSize - (_boardPadding * 2) - (borderWidth * 2);
+    _cellSize = ((innerBoardSize - (AppConstants.gridSize - 1) * AppConstants.gridSpacing) /
+        AppConstants.gridSize) - 0.001;
     _trayCellSize = _cellSize * AppConstants.pieceTrayScale;
 
     final pieces = engine.currentPieces;
@@ -208,8 +209,10 @@ class _PieceTrayState extends State<PieceTray> with TickerProviderStateMixin {
 
     // Offset upward so the piece appears above the finger
     final fingerOffset = _cellSize * piece.shape.height * 0.5 + 60;
-    final localX = _dragPosition.dx - boardPos.dx - _boardPadding;
-    final localY = _dragPosition.dy - boardPos.dy - _boardPadding - fingerOffset;
+    // Account for both padding and the container's border to align perfectly
+    final boardOffset = _boardPadding + 1.5;
+    final localX = _dragPosition.dx - boardPos.dx - boardOffset;
+    final localY = _dragPosition.dy - boardPos.dy - boardOffset - fingerOffset;
 
     // Center the piece on the finger
     final adjustedX = localX - (piece.shape.width * cellTotal) / 2 + cellTotal / 2;
