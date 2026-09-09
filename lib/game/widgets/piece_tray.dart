@@ -40,6 +40,9 @@ class _PieceTrayState extends State<PieceTray> with TickerProviderStateMixin {
   late double _trayCellSize;
   late double _boardPadding;
 
+  // Overlay entry for floating dragged piece
+  OverlayEntry? _dragOverlay;
+
   GameEngine get engine => widget.engine;
 
   @override
@@ -50,6 +53,7 @@ class _PieceTrayState extends State<PieceTray> with TickerProviderStateMixin {
 
   @override
   void dispose() {
+    _removeDragOverlay();
     engine.removeListener(_onEngineChanged);
     super.dispose();
   }
@@ -64,7 +68,55 @@ class _PieceTrayState extends State<PieceTray> with TickerProviderStateMixin {
   }
 
   void _onEngineChanged() {
-    if (mounted) setState(() {});
+    // Only rebuild when NOT in the middle of a drag gesture to avoid
+    // killing the GestureDetector. During drag, the overlay handles visuals.
+    if (_draggingIndex == null && mounted) {
+      setState(() {});
+    }
+  }
+
+  void _removeDragOverlay() {
+    _dragOverlay?.remove();
+    _dragOverlay = null;
+  }
+
+  void _showDragOverlay(GamePiece piece) {
+    _removeDragOverlay();
+
+    _dragOverlay = OverlayEntry(
+      builder: (context) {
+        final pieceWidth = piece.shape.width * (_cellSize + AppConstants.gridSpacing);
+        final pieceHeight = piece.shape.height * (_cellSize + AppConstants.gridSpacing);
+        // Offset upward so piece appears above finger
+        final fingerOffset = _cellSize * piece.shape.height * 0.5 + 60;
+
+        return Positioned(
+          left: _dragPosition.dx - pieceWidth / 2,
+          top: _dragPosition.dy - pieceHeight / 2 - fingerOffset,
+          child: IgnorePointer(
+            child: Transform.scale(
+              scale: AppConstants.dragScale,
+              child: Opacity(
+                opacity: 0.85,
+                child: Material(
+                  color: Colors.transparent,
+                  elevation: AppConstants.dragElevation,
+                  shadowColor: Colors.black54,
+                  borderRadius: BorderRadius.circular(8),
+                  child: _buildPieceGrid(piece, _cellSize),
+                ),
+              ),
+            ),
+          ),
+        );
+      },
+    );
+
+    Overlay.of(context).insert(_dragOverlay!);
+  }
+
+  void _updateDragOverlay() {
+    _dragOverlay?.markNeedsBuild();
   }
 
   @override
@@ -88,9 +140,8 @@ class _PieceTrayState extends State<PieceTray> with TickerProviderStateMixin {
           if (piece.isPlaced) {
             return _emptySlot(piece);
           }
-          if (_draggingIndex == index) {
-            return _emptySlot(piece);
-          }
+          // CRITICAL FIX: Always build the GestureDetector even during drag,
+          // but visually hide it. This prevents the gesture from being killed.
           return _buildDraggablePiece(piece, index);
         }),
       ),
@@ -106,6 +157,7 @@ class _PieceTrayState extends State<PieceTray> with TickerProviderStateMixin {
 
   Widget _buildDraggablePiece(GamePiece piece, int index) {
     final canFit = engine.canPieceFit(index);
+    final isDragging = _draggingIndex == index;
 
     return GestureDetector(
       onPanStart: (details) {
@@ -115,13 +167,14 @@ class _PieceTrayState extends State<PieceTray> with TickerProviderStateMixin {
         engine.startDrag(index);
         widget.hapticService.lightImpact();
         widget.soundService.playPickup();
-        // setState is triggered via _onEngineChanged from startDrag's notifyListeners
+        _showDragOverlay(piece);
+        setState(() {});
       },
       onPanUpdate: (details) {
         if (_draggingIndex != index) return;
         _dragPosition = details.globalPosition;
         _updateBoardPreview(piece);
-        // notifyListeners in updateDragPreview triggers setState via _onEngineChanged
+        _updateDragOverlay();
       },
       onPanEnd: (details) {
         if (_draggingIndex != index) return;
@@ -129,13 +182,14 @@ class _PieceTrayState extends State<PieceTray> with TickerProviderStateMixin {
       },
       onPanCancel: () {
         if (_draggingIndex != index) return;
+        _removeDragOverlay();
         _draggingIndex = null;
         engine.cancelDrag();
-        // setState is triggered via _onEngineChanged from cancelDrag's notifyListeners
+        setState(() {});
       },
       child: AnimatedOpacity(
         duration: const Duration(milliseconds: 200),
-        opacity: canFit ? 1.0 : 0.4,
+        opacity: isDragging ? 0.0 : (canFit ? 1.0 : 0.4),
         child: Container(
           padding: const EdgeInsets.all(8),
           child: _buildPieceGrid(piece, _trayCellSize),
@@ -172,6 +226,7 @@ class _PieceTrayState extends State<PieceTray> with TickerProviderStateMixin {
   }
 
   void _handleDrop() {
+    _removeDragOverlay();
     final result = engine.dropPiece();
     _draggingIndex = null;
 
@@ -182,7 +237,8 @@ class _PieceTrayState extends State<PieceTray> with TickerProviderStateMixin {
     } else {
       widget.soundService.playInvalid();
     }
-    // setState is triggered via _onEngineChanged from dropPiece's notifyListeners
+    // Force rebuild to show the piece back in the tray or mark as placed
+    setState(() {});
   }
 
   Widget _buildPieceGrid(GamePiece piece, double cellSize) {
