@@ -40,6 +40,9 @@ class _PieceTrayState extends State<PieceTray> with TickerProviderStateMixin {
   late double _trayCellSize;
   late double _boardPadding;
 
+  // Optimised smooth dragging offset notifier
+  final ValueNotifier<Offset> _dragOverlayPosition = ValueNotifier(Offset.zero);
+
   // Overlay entry for floating dragged piece
   OverlayEntry? _dragOverlay;
 
@@ -82,6 +85,9 @@ class _PieceTrayState extends State<PieceTray> with TickerProviderStateMixin {
 
   void _showDragOverlay(GamePiece piece) {
     _removeDragOverlay();
+    
+    // Set initial position
+    _dragOverlayPosition.value = _dragPosition;
 
     _dragOverlay = OverlayEntry(
       builder: (context) {
@@ -90,9 +96,15 @@ class _PieceTrayState extends State<PieceTray> with TickerProviderStateMixin {
         // Offset upward so piece appears above finger
         final fingerOffset = _cellSize * piece.shape.height * 0.5 + 60;
 
-        return Positioned(
-          left: _dragPosition.dx - pieceWidth / 2,
-          top: _dragPosition.dy - pieceHeight / 2 - fingerOffset,
+        return ValueListenableBuilder<Offset>(
+          valueListenable: _dragOverlayPosition,
+          builder: (context, pos, child) {
+            return Positioned(
+              left: pos.dx - pieceWidth / 2,
+              top: pos.dy - pieceHeight / 2 - fingerOffset,
+              child: child!,
+            );
+          },
           child: IgnorePointer(
             child: Transform.scale(
               scale: AppConstants.dragScale,
@@ -116,7 +128,8 @@ class _PieceTrayState extends State<PieceTray> with TickerProviderStateMixin {
   }
 
   void _updateDragOverlay() {
-    _dragOverlay?.markNeedsBuild();
+    // We no longer trigger a full rebuild of the overlay.
+    // The ValueListenableBuilder automatically repaints the Positioned widget.
   }
 
   @override
@@ -174,8 +187,8 @@ class _PieceTrayState extends State<PieceTray> with TickerProviderStateMixin {
       onPanUpdate: (details) {
         if (_draggingIndex != index) return;
         _dragPosition = details.globalPosition;
+        _dragOverlayPosition.value = _dragPosition; // Fast position update
         _updateBoardPreview(piece);
-        _updateDragOverlay();
       },
       onPanEnd: (details) {
         if (_draggingIndex != index) return;
