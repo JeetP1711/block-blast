@@ -20,10 +20,13 @@ class GameBoardWidget extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final padding = 8.0;
-    final innerSize = boardSize - padding * 2;
+    final borderWidth = 1.5;
+    // Account for both padding and border width to prevent UI overflow
+    final innerSize = boardSize - (padding * 2) - (borderWidth * 2);
+    // Subtract a tiny fraction to avoid any floating-point rounding rendering overflows
     final cellSize =
-        (innerSize - (AppConstants.gridSize - 1) * AppConstants.gridSpacing) /
-            AppConstants.gridSize;
+        ((innerSize - (AppConstants.gridSize - 1) * AppConstants.gridSpacing) /
+            AppConstants.gridSize) - 0.001;
 
     return ListenableBuilder(
       listenable: engine,
