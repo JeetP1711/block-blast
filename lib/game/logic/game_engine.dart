@@ -122,7 +122,13 @@ class GameEngine extends ChangeNotifier {
 
   /// Update drag preview position.
   void updateDragPreview(int? boardRow, int? boardCol) {
-    if (_state != GameState.dragging || _dragPieceIndex == null) return;
+    if (_dragPieceIndex == null) return;
+    // Allow updates in both dragging state
+    if (_state != GameState.dragging) return;
+
+    final oldRow = _previewRow;
+    final oldCol = _previewCol;
+    final oldValid = _previewValid;
 
     _previewRow = boardRow;
     _previewCol = boardCol;
@@ -137,12 +143,18 @@ class GameEngine extends ChangeNotifier {
     } else {
       _previewValid = false;
     }
-    notifyListeners();
+
+    // Only notify if something actually changed to reduce rebuilds
+    if (oldRow != _previewRow || oldCol != _previewCol || oldValid != _previewValid) {
+      notifyListeners();
+    }
   }
 
   /// Drop the piece. Returns PlacementResult if placed, null if invalid.
   PlacementResult? dropPiece() {
-    if (_state != GameState.dragging || _dragPieceIndex == null) return null;
+    if (_dragPieceIndex == null) return null;
+    // Accept drop from dragging state
+    if (_state != GameState.dragging) return null;
 
     PlacementResult? result;
 
@@ -158,6 +170,7 @@ class GameEngine extends ChangeNotifier {
     if (result == null) {
       _state = GameState.playing;
     }
+    // If result != null, state is set to placing in _placePiece
 
     notifyListeners();
     return result;
