@@ -53,9 +53,20 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
   }
 
   void _onEngineChanged() {
+    if (!mounted) return;
+    
+    // Only do a full screen rebuild for major state changes,
+    // not for drag preview updates (the board handles those itself)
+    final state = _engine.state;
+    if (state == GameState.dragging) {
+      // Board handles its own preview rendering via ListenableBuilder
+      // Don't need to rebuild the whole screen for drag updates
+      return;
+    }
+    
     setState(() {});
 
-    if (_engine.state == GameState.gameOver) {
+    if (state == GameState.gameOver) {
       widget.hapticService.heavyImpact();
       widget.soundService.playGameOver();
       widget.storageService.setHighScore(_engine.highScore);
@@ -159,15 +170,20 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
                       // Top bar
                       _buildTopBar(),
                       const SizedBox(height: 8),
-                      // Score
-                      ScoreDisplay(
-                        score: _engine.score,
-                        highScore: _engine.highScore,
-                        bonusText: _bonusText,
-                        comboCount: _comboCount,
+                      // Score — uses ListenableBuilder for real-time score updates
+                      ListenableBuilder(
+                        listenable: _engine,
+                        builder: (context, _) {
+                          return ScoreDisplay(
+                            score: _engine.score,
+                            highScore: _engine.highScore,
+                            bonusText: _bonusText,
+                            comboCount: _comboCount,
+                          );
+                        },
                       ),
                       const SizedBox(height: 12),
-                      // Board — key is on an outer wrapper so it stays stable
+                      // Board — uses ListenableBuilder internally for preview updates
                       Center(
                         child: Container(
                           key: _boardKey,
@@ -184,7 +200,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
                         style: AppTextStyles.instruction,
                       ),
                       const SizedBox(height: 8),
-                      // Piece tray — NOT wrapped in ListenableBuilder
+                      // Piece tray
                       Expanded(
                         child: Center(
                           child: PieceTray(
