@@ -6,7 +6,7 @@ import '../../utils/helpers.dart';
 class ScoreDisplay extends StatefulWidget {
   final int score;
   final int highScore;
-  final String? bonusText;
+  final String? bonusText; // format: "points_uniqueId"
   final int? comboCount;
 
   const ScoreDisplay({
@@ -32,12 +32,14 @@ class _ScoreDisplayState extends State<ScoreDisplay>
   Animation<double>? _bonusOpacity;
   Animation<Offset>? _bonusSlide;
   Animation<double>? _bonusScale;
-  String? _lastBonus;
+  String _lastBonusKey = '';
+  String _bonusDisplayText = '';
 
   // Combo popup
   AnimationController? _comboController;
   Animation<double>? _comboOpacity;
   Animation<double>? _comboScale;
+  int _displayedCombo = 0;
 
   @override
   void initState() {
@@ -64,28 +66,34 @@ class _ScoreDisplayState extends State<ScoreDisplay>
         CurvedAnimation(parent: _scoreController, curve: Curves.easeOut),
       );
       _scoreController.forward(from: 0);
-      _scoreController.addStatusListener((status) {
-        if (status == AnimationStatus.completed) {
-          _displayedScore = widget.score;
-        }
-      });
+      _scoreController.addStatusListener(_onScoreAnimDone);
     }
 
-    // Show bonus popup
-    if (widget.bonusText != null && widget.bonusText != _lastBonus) {
-      _lastBonus = widget.bonusText;
-      _showBonusPopup(widget.bonusText!);
+    // Show bonus popup (unique key check)
+    if (widget.bonusText != null && widget.bonusText != _lastBonusKey) {
+      _lastBonusKey = widget.bonusText!;
+      // Parse the points from "points_uniqueId" format
+      final parts = widget.bonusText!.split('_');
+      _bonusDisplayText = parts.first;
+      _showBonusPopup();
     }
 
     // Show combo popup
     if (widget.comboCount != null &&
         widget.comboCount! > 1 &&
         widget.comboCount != oldWidget.comboCount) {
-      _showComboPopup(widget.comboCount!);
+      _displayedCombo = widget.comboCount!;
+      _showComboPopup();
     }
   }
 
-  void _showBonusPopup(String text) {
+  void _onScoreAnimDone(AnimationStatus status) {
+    if (status == AnimationStatus.completed) {
+      _displayedScore = widget.score;
+    }
+  }
+
+  void _showBonusPopup() {
     _bonusController?.dispose();
     _bonusController = AnimationController(
       duration: const Duration(milliseconds: 1200),
@@ -110,10 +118,10 @@ class _ScoreDisplayState extends State<ScoreDisplay>
     ]).animate(_bonusController!);
 
     _bonusController!.forward();
-    setState(() {});
+    if (mounted) setState(() {});
   }
 
-  void _showComboPopup(int combo) {
+  void _showComboPopup() {
     _comboController?.dispose();
     _comboController = AnimationController(
       duration: AppConstants.comboDuration,
@@ -132,11 +140,12 @@ class _ScoreDisplayState extends State<ScoreDisplay>
     ]).animate(_comboController!);
 
     _comboController!.forward();
-    setState(() {});
+    if (mounted) setState(() {});
   }
 
   @override
   void dispose() {
+    _scoreController.removeStatusListener(_onScoreAnimDone);
     _scoreController.dispose();
     _bonusController?.dispose();
     _comboController?.dispose();
@@ -194,7 +203,7 @@ class _ScoreDisplayState extends State<ScoreDisplay>
                         child: Transform.scale(
                           scale: _bonusScale!.value,
                           child: Text(
-                            '+$_lastBonus',
+                            '+$_bonusDisplayText',
                             style: const TextStyle(
                               fontSize: 18,
                               fontWeight: FontWeight.w800,
@@ -227,7 +236,7 @@ class _ScoreDisplayState extends State<ScoreDisplay>
                             borderRadius: BorderRadius.circular(12),
                           ),
                           child: Text(
-                            'COMBO x${widget.comboCount}!',
+                            'COMBO x$_displayedCombo!',
                             style: AppTextStyles.combo.copyWith(fontSize: 16),
                           ),
                         ),

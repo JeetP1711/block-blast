@@ -7,6 +7,9 @@ import '../../utils/constants.dart';
 import '../../services/haptic_service.dart';
 import '../../services/sound_service.dart';
 
+/// Callback that receives placement result.
+typedef PiecePlacedCallback = void Function(PlacementResult result);
+
 /// The piece tray and drag handler.
 class PieceTray extends StatefulWidget {
   final GameEngine engine;
@@ -14,7 +17,7 @@ class PieceTray extends StatefulWidget {
   final GlobalKey boardKey;
   final HapticService hapticService;
   final SoundService soundService;
-  final VoidCallback onPiecePlaced;
+  final PiecePlacedCallback onPiecePlaced;
 
   const PieceTray({
     super.key,
@@ -40,6 +43,31 @@ class _PieceTrayState extends State<PieceTray> with TickerProviderStateMixin {
   GameEngine get engine => widget.engine;
 
   @override
+  void initState() {
+    super.initState();
+    engine.addListener(_onEngineChanged);
+  }
+
+  @override
+  void dispose() {
+    engine.removeListener(_onEngineChanged);
+    super.dispose();
+  }
+
+  @override
+  void didUpdateWidget(PieceTray oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.engine != widget.engine) {
+      oldWidget.engine.removeListener(_onEngineChanged);
+      widget.engine.addListener(_onEngineChanged);
+    }
+  }
+
+  void _onEngineChanged() {
+    if (mounted) setState(() {});
+  }
+
+  @override
   Widget build(BuildContext context) {
     _boardPadding = 8.0;
     final innerBoardSize = widget.boardSize - _boardPadding * 2;
@@ -52,21 +80,19 @@ class _PieceTrayState extends State<PieceTray> with TickerProviderStateMixin {
 
     return SizedBox(
       height: 120,
-      child: Stack(
-        clipBehavior: Clip.none,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: List.generate(pieces.length, (index) {
-              final piece = pieces[index];
-              if (piece.isPlaced || _draggingIndex == index) {
-                return _emptySlot(piece);
-              }
-              return _buildDraggablePiece(piece, index);
-            }),
-          ),
-        ],
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: List.generate(pieces.length, (index) {
+          final piece = pieces[index];
+          if (piece.isPlaced) {
+            return _emptySlot(piece);
+          }
+          if (_draggingIndex == index) {
+            return _emptySlot(piece);
+          }
+          return _buildDraggablePiece(piece, index);
+        }),
       ),
     );
   }
@@ -84,20 +110,18 @@ class _PieceTrayState extends State<PieceTray> with TickerProviderStateMixin {
     return GestureDetector(
       onPanStart: (details) {
         if (engine.state != GameState.playing) return;
-        setState(() {
-          _draggingIndex = index;
-          _dragPosition = details.globalPosition;
-        });
+        _draggingIndex = index;
+        _dragPosition = details.globalPosition;
         engine.startDrag(index);
         widget.hapticService.lightImpact();
         widget.soundService.playPickup();
+        // setState is triggered via _onEngineChanged from startDrag's notifyListeners
       },
       onPanUpdate: (details) {
         if (_draggingIndex != index) return;
-        setState(() {
-          _dragPosition = details.globalPosition;
-        });
+        _dragPosition = details.globalPosition;
         _updateBoardPreview(piece);
+        // notifyListeners in updateDragPreview triggers setState via _onEngineChanged
       },
       onPanEnd: (details) {
         if (_draggingIndex != index) return;
@@ -105,10 +129,9 @@ class _PieceTrayState extends State<PieceTray> with TickerProviderStateMixin {
       },
       onPanCancel: () {
         if (_draggingIndex != index) return;
+        _draggingIndex = null;
         engine.cancelDrag();
-        setState(() {
-          _draggingIndex = null;
-        });
+        // setState is triggered via _onEngineChanged from cancelDrag's notifyListeners
       },
       child: AnimatedOpacity(
         duration: const Duration(milliseconds: 200),
@@ -129,7 +152,6 @@ class _PieceTrayState extends State<PieceTray> with TickerProviderStateMixin {
     final boardPos = boardBox.localToGlobal(Offset.zero);
     final cellTotal = _cellSize + AppConstants.gridSpacing;
 
-    // Calculate which cell the center of the piece would land on
     // Offset upward so the piece appears above the finger
     final fingerOffset = _cellSize * piece.shape.height * 0.5 + 60;
     final localX = _dragPosition.dx - boardPos.dx - _boardPadding;
@@ -151,33 +173,16 @@ class _PieceTrayState extends State<PieceTray> with TickerProviderStateMixin {
 
   void _handleDrop() {
     final result = engine.dropPiece();
+    _draggingIndex = null;
+
     if (result != null) {
       widget.hapticService.mediumImpact();
       widget.soundService.playPlace();
-      widget.onPiecePlaced();
-
-      if (result.linesCleared > 0) {
-        Future.delayed(const Duration(milliseconds: 50), () {
-          widget.hapticService.heavyImpact();
-          widget.soundService.playClear();
-          if (result.combo > 1) {
-            widget.soundService.playCombo();
-          }
-
-          // Execute clearing after animation
-          Future.delayed(AppConstants.clearDuration, () {
-            engine.executeClear();
-          });
-        });
-      } else {
-        engine.finalizePlacement();
-      }
+      widget.onPiecePlaced(result);
     } else {
       widget.soundService.playInvalid();
     }
-    setState(() {
-      _draggingIndex = null;
-    });
+    // setState is triggered via _onEngineChanged from dropPiece's notifyListeners
   }
 
   Widget _buildPieceGrid(GamePiece piece, double cellSize) {

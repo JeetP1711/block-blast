@@ -31,26 +31,28 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
   late GameEngine _engine;
   final GlobalKey _boardKey = GlobalKey();
 
+  // Score animation state
   String? _bonusText;
   int? _comboCount;
+  int _bonusCounter = 0; // unique id so duplicate values still trigger animation
 
   @override
   void initState() {
     super.initState();
     _engine = GameEngine();
     _engine.setHighScore(widget.storageService.getHighScore());
-    _engine.addListener(_onGameStateChanged);
+    _engine.addListener(_onEngineChanged);
     _engine.startGame();
   }
 
   @override
   void dispose() {
-    _engine.removeListener(_onGameStateChanged);
+    _engine.removeListener(_onEngineChanged);
     _engine.dispose();
     super.dispose();
   }
 
-  void _onGameStateChanged() {
+  void _onEngineChanged() {
     setState(() {});
 
     if (_engine.state == GameState.gameOver) {
@@ -63,9 +65,44 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
     }
   }
 
+  void _onPiecePlaced(PlacementResult result) {
+    _bonusCounter++;
+    setState(() {
+      final totalPoints = result.placementPoints + result.clearPoints;
+      _bonusText = '${totalPoints}_$_bonusCounter'; // unique key
+      if (result.combo > 1) {
+        _comboCount = result.combo;
+      }
+    });
+
+    widget.storageService.setHighScore(_engine.highScore);
+
+    if (result.linesCleared > 0) {
+      Future.delayed(const Duration(milliseconds: 50), () {
+        if (!mounted) return;
+        widget.hapticService.heavyImpact();
+        widget.soundService.playClear();
+        if (result.combo > 1) {
+          widget.soundService.playCombo();
+        }
+        // Execute clearing after animation
+        Future.delayed(AppConstants.clearDuration, () {
+          if (!mounted) return;
+          _engine.executeClear();
+        });
+      });
+    } else {
+      _engine.finalizePlacement();
+    }
+  }
+
   void _handlePlayAgain() {
     widget.hapticService.lightImpact();
     widget.soundService.playButtonClick();
+    setState(() {
+      _bonusText = null;
+      _comboCount = null;
+    });
     _engine.restart();
   }
 
@@ -83,6 +120,10 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
   void _handleRestart() {
     widget.hapticService.lightImpact();
     widget.soundService.playButtonClick();
+    setState(() {
+      _bonusText = null;
+      _comboCount = null;
+    });
     _engine.restart();
   }
 
@@ -119,29 +160,21 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
                       _buildTopBar(),
                       const SizedBox(height: 8),
                       // Score
-                      ListenableBuilder(
-                        listenable: _engine,
-                        builder: (context, _) {
-                          return ScoreDisplay(
-                            score: _engine.score,
-                            highScore: _engine.highScore,
-                            bonusText: _bonusText,
-                            comboCount: _comboCount,
-                          );
-                        },
+                      ScoreDisplay(
+                        score: _engine.score,
+                        highScore: _engine.highScore,
+                        bonusText: _bonusText,
+                        comboCount: _comboCount,
                       ),
                       const SizedBox(height: 12),
-                      // Board
+                      // Board — key is on an outer wrapper so it stays stable
                       Center(
-                        child: ListenableBuilder(
-                          listenable: _engine,
-                          builder: (context, _) {
-                            return GameBoardWidget(
-                              key: _boardKey,
-                              engine: _engine,
-                              boardSize: boardSize,
-                            );
-                          },
+                        child: Container(
+                          key: _boardKey,
+                          child: GameBoardWidget(
+                            engine: _engine,
+                            boardSize: boardSize,
+                          ),
                         ),
                       ),
                       const SizedBox(height: 16),
@@ -151,25 +184,16 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
                         style: AppTextStyles.instruction,
                       ),
                       const SizedBox(height: 8),
-                      // Piece tray
+                      // Piece tray — NOT wrapped in ListenableBuilder
                       Expanded(
                         child: Center(
-                          child: ListenableBuilder(
-                            listenable: _engine,
-                            builder: (context, _) {
-                              return PieceTray(
-                                engine: _engine,
-                                boardSize: boardSize,
-                                boardKey: _boardKey,
-                                hapticService: widget.hapticService,
-                                soundService: widget.soundService,
-                                onPiecePlaced: () {
-                                  setState(() {});
-                                  widget.storageService
-                                      .setHighScore(_engine.highScore);
-                                },
-                              );
-                            },
+                          child: PieceTray(
+                            engine: _engine,
+                            boardSize: boardSize,
+                            boardKey: _boardKey,
+                            hapticService: widget.hapticService,
+                            soundService: widget.soundService,
+                            onPiecePlaced: _onPiecePlaced,
                           ),
                         ),
                       ),
