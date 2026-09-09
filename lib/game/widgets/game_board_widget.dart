@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import '../models/block.dart';
 import '../models/game_state.dart';
 import '../logic/game_engine.dart';
 import 'block_widget.dart';
