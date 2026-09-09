@@ -1,10 +1,13 @@
 import 'package:flutter/material.dart';
+import '../models/block.dart';
 import '../models/game_state.dart';
 import '../logic/game_engine.dart';
 import 'block_widget.dart';
 import '../../utils/constants.dart';
 
 /// The 9x9 game board widget.
+/// Uses ListenableBuilder to listen directly to engine changes
+/// so the board preview updates during drag.
 class GameBoardWidget extends StatelessWidget {
   final GameEngine engine;
   final double boardSize;
@@ -23,34 +26,34 @@ class GameBoardWidget extends StatelessWidget {
         (innerSize - (AppConstants.gridSize - 1) * AppConstants.gridSpacing) /
             AppConstants.gridSize;
 
-    return Container(
-      width: boardSize,
-      height: boardSize,
-      decoration: BoxDecoration(
-        color: AppColors.gridBg,
-        borderRadius: BorderRadius.circular(AppConstants.gridBorderRadius),
-        border: Border.all(
-          color: AppColors.gridBorder,
-          width: 1.5,
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.3),
-            blurRadius: 20,
-            offset: const Offset(0, 8),
+    return ListenableBuilder(
+      listenable: engine,
+      builder: (context, _) {
+        return Container(
+          width: boardSize,
+          height: boardSize,
+          decoration: BoxDecoration(
+            color: AppColors.gridBg,
+            borderRadius: BorderRadius.circular(AppConstants.gridBorderRadius),
+            border: Border.all(
+              color: AppColors.gridBorder,
+              width: 1.5,
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.3),
+                blurRadius: 20,
+                offset: const Offset(0, 8),
+              ),
+              BoxShadow(
+                color: AppColors.buttonGlow.withValues(alpha: 0.05),
+                blurRadius: 40,
+                spreadRadius: 5,
+              ),
+            ],
           ),
-          BoxShadow(
-            color: AppColors.buttonGlow.withValues(alpha: 0.05),
-            blurRadius: 40,
-            spreadRadius: 5,
-          ),
-        ],
-      ),
-      padding: EdgeInsets.all(padding),
-      child: Stack(
-        children: [
-          // Grid cells
-          Column(
+          padding: EdgeInsets.all(padding),
+          child: Column(
             mainAxisSize: MainAxisSize.min,
             children: List.generate(AppConstants.gridSize, (row) {
               return Padding(
@@ -75,8 +78,8 @@ class GameBoardWidget extends StatelessWidget {
               );
             }),
           ),
-        ],
-      ),
+        );
+      },
     );
   }
 
@@ -88,7 +91,7 @@ class GameBoardWidget extends StatelessWidget {
     bool previewValid = false;
     BlockColorSet? previewColor;
 
-    if (engine.state == GameState.dragging &&
+    if ((engine.state == GameState.dragging || engine.state == GameState.playing) &&
         engine.dragPieceIndex != null &&
         engine.previewRow != null &&
         engine.previewCol != null) {
