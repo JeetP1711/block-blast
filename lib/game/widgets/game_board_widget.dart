@@ -127,7 +127,7 @@ class GameBoardWidget extends StatelessWidget {
         return BlockWidget(
           colorSet: previewColor,
           size: cellSize,
-          opacity: 0.5,
+          opacity: 1.0,
         );
       }
       return PreviewCellWidget(

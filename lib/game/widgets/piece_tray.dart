@@ -99,24 +99,36 @@ class _PieceTrayState extends State<PieceTray> with TickerProviderStateMixin {
         return ValueListenableBuilder<Offset>(
           valueListenable: _dragOverlayPosition,
           builder: (context, pos, child) {
-            return Positioned(
-              left: pos.dx - pieceWidth / 2,
-              top: pos.dy - pieceHeight / 2 - fingerOffset,
-              child: child!,
+            return ListenableBuilder(
+              listenable: engine,
+              builder: (context, _) {
+                final isSnapped = engine.previewRow != null && engine.previewValid;
+                
+                return Positioned(
+                  left: pos.dx - pieceWidth / 2,
+                  top: pos.dy - pieceHeight / 2 - fingerOffset,
+                  child: isSnapped ? const SizedBox.shrink() : child!,
+                );
+              },
             );
           },
           child: IgnorePointer(
-            child: Transform.scale(
-              scale: AppConstants.dragScale,
-              child: Opacity(
-                opacity: 0.85,
-                child: Material(
-                  color: Colors.transparent,
-                  elevation: AppConstants.dragElevation,
-                  shadowColor: Colors.black54,
-                  borderRadius: BorderRadius.circular(8),
-                  child: _buildPieceGrid(piece, _cellSize),
-                ),
+            child: TweenAnimationBuilder<double>(
+              tween: Tween(begin: 1.0, end: AppConstants.dragScale),
+              duration: const Duration(milliseconds: 150),
+              curve: Curves.easeOutBack,
+              builder: (context, scale, child) {
+                return Transform.scale(
+                  scale: scale,
+                  child: child,
+                );
+              },
+              child: Material(
+                color: Colors.transparent,
+                elevation: AppConstants.dragElevation,
+                shadowColor: Colors.black54,
+                borderRadius: BorderRadius.circular(8),
+                child: _buildPieceGrid(piece, _cellSize),
               ),
             ),
           ),

@@ -18,59 +18,60 @@ class BlockWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Opacity(
-      opacity: opacity,
-      child: Container(
-        width: size,
-        height: size,
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(AppConstants.cellBorderRadius),
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [colorSet.light, colorSet.main, colorSet.dark],
-            stops: const [0.0, 0.4, 1.0],
-          ),
-          boxShadow: [
-            BoxShadow(
-              color: colorSet.shadow.withValues(alpha: 0.5),
-              offset: const Offset(0, 2),
-              blurRadius: 4,
-            ),
-            BoxShadow(
-              color: colorSet.main.withValues(alpha: 0.3),
-              offset: const Offset(0, 0),
-              blurRadius: clearing ? 12 : 0,
-              spreadRadius: clearing ? 2 : 0,
-            ),
-          ],
+    final content = Container(
+      width: size,
+      height: size,
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(AppConstants.cellBorderRadius),
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [colorSet.light, colorSet.main, colorSet.dark],
+          stops: const [0.0, 0.4, 1.0],
         ),
-        child: Stack(
-          children: [
-            // Inner highlight
-            Positioned(
-              top: 1,
-              left: 1,
-              right: size * 0.4,
-              bottom: size * 0.4,
-              child: Container(
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(AppConstants.cellBorderRadius - 1),
-                  gradient: LinearGradient(
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                    colors: [
-                      Colors.white.withValues(alpha: 0.35),
-                      Colors.white.withValues(alpha: 0.0),
-                    ],
-                  ),
+        boxShadow: [
+          BoxShadow(
+            color: colorSet.shadow.withValues(alpha: 0.5),
+            offset: const Offset(0, 2),
+            blurRadius: 4,
+          ),
+          BoxShadow(
+            color: colorSet.main.withValues(alpha: 0.3),
+            offset: const Offset(0, 0),
+            blurRadius: clearing ? 12 : 0,
+            spreadRadius: clearing ? 2 : 0,
+          ),
+        ],
+      ),
+      child: Stack(
+        children: [
+          // Inner highlight
+          Positioned(
+            top: 1,
+            left: 1,
+            right: size * 0.4,
+            bottom: size * 0.4,
+            child: Container(
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(AppConstants.cellBorderRadius - 1),
+                gradient: LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: [
+                    Colors.white.withValues(alpha: 0.35),
+                    Colors.white.withValues(alpha: 0.0),
+                  ],
                 ),
               ),
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
+
+    return opacity == 1.0 
+        ? content 
+        : Opacity(opacity: opacity, child: content);
   }
 }
 
